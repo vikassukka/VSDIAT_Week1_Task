@@ -1,1 +1,99 @@
+📅 Day 2 – Lab Notes: RTL, .lib, Flip-Flops & Synthesis Optimizations
+
+1️⃣ Understanding the .lib File
+
+The .lib file is basically a guidebook for the standard cells — it tells the synthesis tool how each gate behaves in terms of timing, power, and area.
+
+Key things I learned:
+
+Library name: sky130_fd_sc_hd__tt_025C_1v80.lib
+
+sky130_fd_sc_hd → SkyWater 130nm high-density library
+
+tt → typical process corner
+
+025C → 25°C temperature
+
+1v80 → 1.8V supply voltage
+
+PVT corners: Ensure cells work reliably under variations in Process, Voltage, Temperature.
+
+Units: ns, V, nW, mA, kΩ, pF.
+
+Cells: Logic gates and flip-flops with multiple drive strengths (e.g., AND2_X0, AND2_X4).
+
+Takeaway: The .lib file makes our design “realistic” — not just functional Verilog. Synthesis uses it to pick the right cell for timing, area, and power.
+
+2️⃣ Hierarchical vs Flat Synthesis (synth -top)
+
+I tested both synthesis styles on multiple_modules.v, which contains:
+
+Submodule 1: AND gate
+
+Submodule 2: OR gate
+
+Top module: Instantiates U1 and U2
+
+Observations:
+
+Aspect	Hierarchical	Flat
+Netlist	Keeps submodules	Flattens everything
+Debugging	Easy	Harder
+Optimization	Moderate	Better timing/area
+Use case	Modular designs	Fully optimized netlist
+
+Lab workflow in Yosys:
+
+read_liberty -lib ../lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+read_verilog multiple_modules.v
+synth -top multiple_modules
+abc -liberty ../lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+show
+
+
+Takeaway: Use hierarchical synthesis for clarity or IP reuse, flat synthesis when you need maximum optimization.
+
+3️⃣ Flip-Flops in Verilog
+
+Why flip-flops?
+
+They stabilize signals and prevent glitches from propagating through combinational logic.
+
+Different types behave differently depending on async vs sync controls.
+
+Types I tried:
+
+DFF with Asynchronous Reset → Q goes low immediately
+
+DFF with Asynchronous Set → Q goes high immediately
+
+DFF with Synchronous Reset → Q changes only on the clock edge
+
+Simulation: iVerilog + GTKWave showed waveforms matching theory.
+
+Synthesis observations (Sky130):
+
+Async reset/set → mapped directly to DFF cells with reset/set pins
+
+Sync reset → added combinational logic before D input
+
+Takeaway: The way you write RTL directly impacts how hardware looks after synthesis.
+
+4️⃣ Synthesis Optimizations
+
+Yosys automatically simplifies arithmetic:
+
+Multiply by 2 → left shift ({A, 1'b0}), no multiplier needed
+
+Multiply by 9 → 8*A + A → pure wiring
+
+Lab workflow:
+
+read_verilog mult_2.v
+synth -top mult2
+abc -liberty ../lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+show
+
+
+Takeaway: Tools are smart enough to reduce arithmetic into simple wiring, saving area and power.
 
